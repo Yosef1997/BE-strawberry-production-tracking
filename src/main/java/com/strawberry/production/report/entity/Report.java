@@ -1,7 +1,6 @@
-package com.strawberry.production.users.entity;
+package com.strawberry.production.report.entity;
 
-import com.fasterxml.jackson.annotation.JsonIgnore;
-import com.strawberry.production.report.entity.Report;
+import com.strawberry.production.users.entity.Users;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.NotNull;
 import lombok.Getter;
@@ -10,43 +9,41 @@ import lombok.Setter;
 import org.hibernate.annotations.ColumnDefault;
 
 import java.time.Instant;
-import java.util.List;
 
 @Entity
-@Table(name = "users",
-        uniqueConstraints = {
-            @UniqueConstraint(columnNames = {"username"})
-        })
+@Table(name = "report")
 @NoArgsConstructor
 @Getter
 @Setter
-
-public class Users {
+public class Report {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(nullable = false)
     private Long id;
 
-    @NotNull
-    @Column(nullable = false)
-    private String name;
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "user_id", nullable = false)
+    private Users pic;
 
     @NotNull
-    @Column(nullable = false, unique = true)
-    private String username;
+    @Column(name = "gross_strawberry_weight", nullable = false)
+    private Double grossStrawberryWeight;
 
-    @JsonIgnore
     @NotNull
-    @Column(nullable = false)
-    private String password;
+    @Column(name = "pack_a_quantity", nullable = false)
+    private Integer packAQuantity;
 
-    @Column(nullable = false)
-    @Enumerated(EnumType.STRING)
-    private Role role;
+    @NotNull
+    @Column(name = "pack_b_quantity", nullable = false)
+    private Integer packBQuantity;
 
-    @JsonIgnore
-    @OneToMany(mappedBy = "pic")
-    private List<Report> productionRecords;
+    @NotNull
+    @Column(name = "pack_c_quantity", nullable = false)
+    private Integer packCQuantity;
+
+    @NotNull
+    @Column(name = "reject_weight", nullable = false)
+    private Double rejectWeight;
 
     @NotNull
     @ColumnDefault("CURRENT_TIMESTAMP")
@@ -75,11 +72,5 @@ public class Users {
     @PreRemove
     public void preRemove() {
         this.deletedAt = Instant.now();
-    }
-
-    public enum Role {
-        MASTER,
-        ADMIN,
-        PIC
     }
 }
