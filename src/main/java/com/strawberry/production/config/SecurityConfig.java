@@ -86,6 +86,9 @@ public class SecurityConfig {
                     auth.requestMatchers(HttpMethod.POST,"/api/v1/users/sign-up").hasAnyAuthority("SCOPE_MASTER", "SCOPE_ADMIN");
                     auth.requestMatchers(HttpMethod.PUT,"/api/v1/users/change-pic-data").hasAnyAuthority("SCOPE_MASTER", "SCOPE_ADMIN");
                     auth.requestMatchers(HttpMethod.DELETE, "/api/v1/users").hasAuthority("SCOPE_MASTER");
+                    auth.requestMatchers(HttpMethod.GET, "/api/v1/report").permitAll();
+                    auth.requestMatchers(HttpMethod.DELETE, "/api/v1/report").hasAuthority("SCOPE_MASTER");
+                    auth.requestMatchers("/api/v1/report/**").hasAnyAuthority("SCOPE_MASTER", "SCOPE_ADMIN", "SCOPE_PIC");
                     auth.anyRequest().authenticated();
                 })
                 .sessionManagement(s -> s.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
