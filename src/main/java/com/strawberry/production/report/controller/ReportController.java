@@ -1,5 +1,7 @@
 package com.strawberry.production.report.controller;
 
+import com.strawberry.production.report.dto.DashboardRequestDto;
+import com.strawberry.production.report.dto.DashboardResponseDto;
 import com.strawberry.production.report.dto.ReportRequestDto;
 import com.strawberry.production.report.dto.ReportResponseDto;
 import com.strawberry.production.report.service.ReportService;
@@ -40,5 +42,10 @@ public class ReportController {
     @DeleteMapping
     public ResponseEntity<Response<String>> deleteReport(@RequestBody ReportRequestDto reportRequestDto) {
         return Response.successResponse("Delete report success", reportService.deleteReport(reportRequestDto));
+    }
+
+    @GetMapping("/dashboard")
+    public ResponseEntity<Response<DashboardResponseDto>> getDashboard(@RequestBody DashboardRequestDto dashboardRequestDto) {
+        return Response.successResponse("Get dashboard success", reportService.getDashboardData(dashboardRequestDto));
     }
 }
