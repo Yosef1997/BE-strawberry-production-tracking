@@ -44,7 +44,7 @@ public class ReportController {
         return Response.successResponse("Delete report success", reportService.deleteReport(reportRequestDto));
     }
 
-    @GetMapping("/dashboard")
+    @PostMapping("/dashboard")
     public ResponseEntity<Response<DashboardResponseDto>> getDashboard(@RequestBody DashboardRequestDto dashboardRequestDto) {
         return Response.successResponse("Get dashboard success", reportService.getDashboardData(dashboardRequestDto));
     }
