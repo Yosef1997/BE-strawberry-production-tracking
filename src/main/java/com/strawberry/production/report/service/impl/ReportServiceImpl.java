@@ -12,9 +12,8 @@ import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 
 import java.time.Instant;
-import java.time.LocalDateTime;
-import java.time.ZoneId;
 import java.time.temporal.ChronoUnit;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -59,7 +58,7 @@ public class ReportServiceImpl implements ReportService {
     public String deleteReport(ReportRequestDto reportRequestDto) {
         logger.info("Delete attempt for report: {}", reportRequestDto.getId());
         Report report = reportRepository.findById(reportRequestDto.getId()).orElseThrow(() -> new NotFoundException("Report with id: " + reportRequestDto.getId() + " not found"));
-        if (report != null){
+        if (report != null) {
             report.setDeletedAt(Instant.now());
             reportRepository.save(report);
             return "Report with id: " + reportRequestDto.getId() + " have deleted successfully";
@@ -83,24 +82,19 @@ public class ReportServiceImpl implements ReportService {
     private List<HourlyAccumulationPerPIC> calculateHourlyAccumulationPerPIC(List<Report> records) {
         return records.stream()
                 .collect(Collectors.groupingBy(
-                        record -> Map.entry(
-                                record.getPic().getName(),
-                                record.getCreatedAt().truncatedTo(ChronoUnit.HOURS)
-                        ),
-                        Collectors.summingInt(record ->
-                                record.getPackAQuantity() +
-                                        record.getPackBQuantity() +
-                                        record.getPackCQuantity()
-                        )
+                        r -> Map.entry(r.getPic().getName(), r.getCreatedAt().truncatedTo(ChronoUnit.HOURS)),
+                        Collectors.summingInt(r -> r.getPackAQuantity() + r.getPackBQuantity() + r.getPackCQuantity())
                 ))
-                .entrySet().stream()
+                .entrySet()
+                .stream()
                 .map(entry -> {
-                    HourlyAccumulationPerPIC acc = new HourlyAccumulationPerPIC();
-                    acc.setPicName(entry.getKey().getKey());
-                    acc.setHour(LocalDateTime.ofInstant(entry.getKey().getValue(), ZoneId.systemDefault()));
-                    acc.setTotalQuantity(entry.getValue());
-                    return acc;
+                    HourlyAccumulationPerPIC dto = new HourlyAccumulationPerPIC();
+                    dto.setPicName(entry.getKey().getKey());
+                    dto.setHour(entry.getKey().getValue());
+                    dto.setTotalQuantity(entry.getValue());
+                    return dto;
                 })
+                .sorted(Comparator.comparing(HourlyAccumulationPerPIC::getHour))
                 .collect(Collectors.toList());
     }
 
@@ -117,151 +111,69 @@ public class ReportServiceImpl implements ReportService {
     }
 
     private List<HourlyAccumulationPerPack> calculateHourlyAccumulationPerPack(List<Report> records) {
-        List<HourlyAccumulationPerPack> result = records.stream()
-                .collect(Collectors.groupingBy(
-                        record -> record.getCreatedAt().truncatedTo(ChronoUnit.HOURS)
-                ))
-                .entrySet().stream()
-                .flatMap(entry -> {
-                    LocalDateTime hour = LocalDateTime.ofInstant(entry.getKey(), ZoneId.systemDefault());
-                    List<Report> hourlyRecords = entry.getValue();
 
-                    // Calculate sum for Pack A
-                    HourlyAccumulationPerPack packA = new HourlyAccumulationPerPack();
-                    packA.setPackType("A");
-                    packA.setHour(hour);
-                    packA.setQuantity(hourlyRecords.stream()
-                            .mapToInt(Report::getPackAQuantity)
-                            .sum());
-
-                    // Calculate sum for Pack B
-                    HourlyAccumulationPerPack packB = new HourlyAccumulationPerPack();
-                    packB.setPackType("B");
-                    packB.setHour(hour);
-                    packB.setQuantity(hourlyRecords.stream()
-                            .mapToInt(Report::getPackBQuantity)
-                            .sum());
-
-                    // Calculate sum for Pack C
-                    HourlyAccumulationPerPack packC = new HourlyAccumulationPerPack();
-                    packC.setPackType("C");
-                    packC.setHour(hour);
-                    packC.setQuantity(hourlyRecords.stream()
-                            .mapToInt(Report::getPackCQuantity)
-                            .sum());
-
-                    return List.of(packA, packB, packC).stream();
+        return records.stream()
+                .map(r -> {
+                    HourlyAccumulationPerPack dto = new HourlyAccumulationPerPack();
+                    dto.setHour(r.getCreatedAt().truncatedTo(ChronoUnit.HOURS));
+                    dto.setPackAQuantity(r.getPackAQuantity());
+                    dto.setPackBQuantity(r.getPackBQuantity());
+                    dto.setPackCQuantity(r.getPackCQuantity());
+                    return dto;
                 })
+                .sorted(Comparator.comparing(HourlyAccumulationPerPack::getHour))
                 .collect(Collectors.toList());
-
-        return result;
     }
 
     private List<ProductivityMetrics> calculateProductivityMetrics(List<Report> records) {
-        // Group by PIC and date
-        Map<Map.Entry<String, LocalDateTime>, List<Report>> groupedRecords = records.stream()
+        return records.stream()
                 .collect(Collectors.groupingBy(
-                        record -> Map.entry(
-                                record.getPic().getName(),
-                                LocalDateTime.ofInstant(record.getCreatedAt().truncatedTo(ChronoUnit.DAYS), ZoneId.systemDefault())
-                        )
-                ));
-
-        return groupedRecords.entrySet().stream()
+                        r -> Map.entry(r.getPic().getName(), r.getCreatedAt().truncatedTo(ChronoUnit.HOURS)),
+                        Collectors.summingInt(r -> r.getPackAQuantity() + r.getPackBQuantity() + r.getPackCQuantity())
+                ))
+                .entrySet()
+                .stream()
                 .map(entry -> {
-                    String picName = entry.getKey().getKey();
-                    LocalDateTime date = entry.getKey().getValue();
-                    List<Report> picDayRecords = entry.getValue();
-
-                    // Calculate total packs for the day
-                    int totalPacks = picDayRecords.stream()
-                            .mapToInt(record ->
-                                    record.getPackAQuantity() +
-                                            record.getPackBQuantity() +
-                                            record.getPackCQuantity()
-                            )
-                            .sum();
-
-                    ProductivityMetrics metrics = new ProductivityMetrics();
-                    metrics.setPicName(picName);
-                    metrics.setDate(date);
-
-                    // Calculate hourly productivity (packs per hour)
-                    metrics.setHourlyProductivity((double) totalPacks / 60); // per minute
-
-                    // Calculate daily productivity (packs per day based on 600 minutes)
-                    metrics.setDailyProductivity((double) totalPacks / 600);
-
-                    return metrics;
+                    ProductivityMetrics dto = new ProductivityMetrics();
+                    dto.setPicName(entry.getKey().getKey());
+                    dto.setDate(entry.getKey().getValue());
+                    dto.setHourlyProductivity(round(entry.getValue() / 60.0));
+                    dto.setDailyProductivity(round(entry.getValue() / 600.0));
+                    return dto;
                 })
+                .sorted(Comparator.comparing(ProductivityMetrics::getDate))
                 .collect(Collectors.toList());
     }
 
     private List<RejectRatio> calculateRejectRatios(List<Report> records) {
-        // Grouping by Date and Hour
-        Map<Map.Entry<LocalDateTime, Integer>, List<Report>> groupedRecords = records.stream()
-                .collect(Collectors.groupingBy(
-                        record -> Map.entry(
-                                LocalDateTime.ofInstant(record.getCreatedAt().truncatedTo(ChronoUnit.DAYS), ZoneId.systemDefault()),
-                                record.getCreatedAt().atZone(ZoneId.systemDefault()).getHour()
-                        )
-                ));
-
-        return groupedRecords.entrySet().stream()
-                .map(entry -> {
-                    LocalDateTime date = entry.getKey().getKey();
-                    int hour = entry.getKey().getValue();
-                    List<Report> hourlyReports = entry.getValue();
-
-                    double totalReject = hourlyReports.stream().mapToDouble(Report::getRejectWeight).sum();
-                    double totalWeight = hourlyReports.stream().mapToDouble(Report::getGrossStrawberryWeight).sum();
-
-                    RejectRatio ratio = new RejectRatio();
-                    ratio.setTimeFrame(date.withHour(hour)); // Menggabungkan tanggal dan jam
-                    ratio.setHourly(true);
-                    ratio.setRejectRatio(totalWeight > 0 ? (totalReject / totalWeight) * 100 : 0);
-
-                    return ratio;
+        return records.stream()
+                .map(r -> {
+                    RejectRatio dto = new RejectRatio();
+                    dto.setTimeFrame(r.getCreatedAt().truncatedTo(ChronoUnit.HOURS));
+                    dto.setRejectRatio(round((r.getRejectWeight() / r.getGrossStrawberryWeight()) * 100));
+                    return dto;
                 })
+                .sorted(Comparator.comparing(RejectRatio::getTimeFrame))
                 .collect(Collectors.toList());
     }
 
     private List<PackRatio> calculatePackRatios(List<Report> records) {
-        // Grouping by Date and Hour
-        Map<Map.Entry<LocalDateTime, Integer>, List<Report>> groupedRecords = records.stream()
-                .collect(Collectors.groupingBy(
-                        record -> Map.entry(
-                                LocalDateTime.ofInstant(record.getCreatedAt().truncatedTo(ChronoUnit.DAYS), ZoneId.systemDefault()),
-                                record.getCreatedAt().atZone(ZoneId.systemDefault()).getHour()
-                        )
-                ));
-
-        return groupedRecords.entrySet().stream()
-                .map(entry -> {
-                    LocalDateTime date = entry.getKey().getKey();
-                    int hour = entry.getKey().getValue();
-                    List<Report> hourlyReports = entry.getValue();
-
-                    int totalPacks = hourlyReports.stream().mapToInt(record ->
-                            record.getPackAQuantity() +
-                                    record.getPackBQuantity() +
-                                    record.getPackCQuantity()
-                    ).sum();
-
-                    double packATotal = hourlyReports.stream().mapToInt(Report::getPackAQuantity).sum();
-                    double packBTotal = hourlyReports.stream().mapToInt(Report::getPackBQuantity).sum();
-                    double packCTotal = hourlyReports.stream().mapToInt(Report::getPackCQuantity).sum();
-
-                    PackRatio ratio = new PackRatio();
-                    ratio.setTimeFrame(date.withHour(hour)); // Menggabungkan tanggal dan jam
-                    ratio.setHourly(true);
-                    ratio.setPackARatio(totalPacks > 0 ? (packATotal / (double) totalPacks) * 100 : 0);
-                    ratio.setPackBRatio(totalPacks > 0 ? (packBTotal / (double) totalPacks) * 100 : 0);
-                    ratio.setPackCRatio(totalPacks > 0 ? (packCTotal / (double) totalPacks) * 100 : 0);
-
-                    return ratio;
+        return records.stream()
+                .map(r -> {
+                    int totalPack = r.getPackAQuantity() + r.getPackBQuantity() + r.getPackCQuantity();
+                    PackRatio dto = new PackRatio();
+                    dto.setTimeFrame(r.getCreatedAt().truncatedTo(ChronoUnit.HOURS));
+                    dto.setPackARatio(round((r.getPackAQuantity() / (double) totalPack) * 100));
+                    dto.setPackBRatio(round((r.getPackBQuantity() / (double) totalPack) * 100));
+                    dto.setPackCRatio(round((r.getPackCQuantity() / (double) totalPack) * 100));
+                    return dto;
                 })
+                .sorted(Comparator.comparing(PackRatio::getTimeFrame))
                 .collect(Collectors.toList());
+    }
+
+    private double round(double value) {
+        return Math.round(value * 10.0) / 10.0;
     }
 
     public ReportResponseDto mapToReportResponseDto(Report report) {

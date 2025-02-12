@@ -2,12 +2,12 @@ package com.strawberry.production.report.dto;
 
 import lombok.Data;
 
-import java.time.LocalDateTime;
+import java.time.Instant;
 
 @Data
 public class ProductivityMetrics {
     private String picName;
-    private double hourlyProductivity; // packs per hour
-    private double dailyProductivity;  // packs per day (600 minutes)
-    private LocalDateTime date;
+    private double hourlyProductivity;
+    private double dailyProductivity;
+    private Instant date;
 }
