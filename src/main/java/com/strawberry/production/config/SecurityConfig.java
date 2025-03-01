@@ -82,6 +82,10 @@ public class SecurityConfig {
                 .authorizeHttpRequests(auth -> {
                     auth.requestMatchers("/error/**").permitAll();
                     auth.requestMatchers("/api/v1/auth/**").permitAll();
+                    auth.requestMatchers("/api/v1/weather/**").permitAll();
+                    auth.requestMatchers("/api/v1/yield/**").permitAll();
+                    auth.requestMatchers("/api/v1/reject/**").permitAll();
+                    auth.requestMatchers("/api/v1/analysis/**").permitAll();
                     auth.requestMatchers(HttpMethod.GET,"/api/v1/users").hasAnyAuthority("SCOPE_MASTER", "SCOPE_ADMIN");
                     auth.requestMatchers(HttpMethod.POST,"/api/v1/users/sign-up").hasAnyAuthority("SCOPE_MASTER", "SCOPE_ADMIN");
                     auth.requestMatchers(HttpMethod.PUT,"/api/v1/users/change-pic-data").hasAnyAuthority("SCOPE_MASTER", "SCOPE_ADMIN");
