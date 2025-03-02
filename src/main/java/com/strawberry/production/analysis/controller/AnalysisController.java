@@ -1,7 +1,7 @@
 package com.strawberry.production.analysis.controller;
 
 import com.strawberry.production.analysis.dto.AnalysisResultDto;
-import com.strawberry.production.analysis.service.impl.AnalysisServiceImpl;
+import com.strawberry.production.analysis.service.AnalysisService;
 import com.strawberry.production.response.Response;
 import lombok.extern.java.Log;
 import org.springframework.data.domain.Page;
@@ -20,13 +20,13 @@ import org.springframework.web.bind.annotation.RestController;
 @Validated
 @Log
 public class AnalysisController {
-    private final AnalysisServiceImpl analysisServiceImpl;
+    private final AnalysisService analysisService;
 
-    public AnalysisController(AnalysisServiceImpl analysisServiceImpl) {
-        this.analysisServiceImpl = analysisServiceImpl;
+    public AnalysisController(AnalysisService analysisService) {
+        this.analysisService = analysisService;
     }
 
-    @GetMapping("/weekly")
+    @GetMapping
     public ResponseEntity<Response<Page<AnalysisResultDto>>> getWeeklyAnalysis(
             @RequestParam(required = false) Integer page,
             @RequestParam(required = false) Integer size,
@@ -41,11 +41,11 @@ public class AnalysisController {
                 : Sort.Direction.ASC;
 
         Pageable pageable = PageRequest.of(pageNum, pageSize, Sort.by(direction, sortByField));
-        return Response.successResponse(analysisServiceImpl.getWeeklyAnalysis(pageable));
+        return Response.successResponse(analysisService.getWeeklyAnalysis(pageable));
     }
 
     @GetMapping("/best-weather")
     public ResponseEntity<Response<AnalysisResultDto>> getBestWeatherAnalysis() {
-        return Response.successResponse(analysisServiceImpl.getBestWeatherAnalysis());
+        return Response.successResponse(analysisService.getBestWeatherAnalysis());
     }
 }

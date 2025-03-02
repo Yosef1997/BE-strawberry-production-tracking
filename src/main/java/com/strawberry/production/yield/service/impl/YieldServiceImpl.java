@@ -46,7 +46,7 @@ public class YieldServiceImpl implements YieldService {
         Yield yield = yieldRepository.findById(yieldRequestDto.getId()).orElseThrow(() -> new NotFoundException("Yield data with id: " + yieldRequestDto.getId() + " not found"));
         Weather weather = weatherService.getDetailWeather(yieldRequestDto.getWeekNumberId());
         yield.setWeekNumber(weather);
-        yield.setStrawberryYield(yield.getStrawberryYield());
+        yield.setStrawberryYield(yieldRequestDto.getStrawberryYield());
         Yield edited = yieldRepository.save(yield);
         return mapToYieldResponseDto(edited);
     }

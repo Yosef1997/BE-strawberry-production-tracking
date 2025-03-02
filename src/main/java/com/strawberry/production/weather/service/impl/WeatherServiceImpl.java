@@ -39,6 +39,7 @@ public class WeatherServiceImpl implements WeatherService {
     @Override
     public WeatherResponseDto editWeatherData(WeatherRequestDto weatherRequestDto) {
         Weather detail = weatherRepository.findById(weatherRequestDto.getId()).orElseThrow(() -> new NotFoundException("Weather data with week number: " + weatherRequestDto.getId() + " not found"));
+        detail.setWeekNumber(weatherRequestDto.getWeekNumber());
         detail.setHumidity(weatherRequestDto.getHumidity());
         detail.setRainFall(weatherRequestDto.getRainFall());
         detail.setTemperature(weatherRequestDto.getTemperature());
