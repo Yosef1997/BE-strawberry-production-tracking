@@ -1,5 +1,6 @@
 package com.strawberry.production.analysis.controller;
 
+import com.strawberry.production.analysis.dto.AllDataDto;
 import com.strawberry.production.analysis.dto.AnalysisResultDto;
 import com.strawberry.production.analysis.service.AnalysisService;
 import com.strawberry.production.response.Response;
@@ -47,5 +48,18 @@ public class AnalysisController {
     @GetMapping("/best-weather")
     public ResponseEntity<Response<AnalysisResultDto>> getBestWeatherAnalysis() {
         return Response.successResponse(analysisService.getBestWeatherAnalysis());
+    }
+
+    @GetMapping("/weather")
+    public ResponseEntity<Response<Page<AllDataDto>>> getAllWeatherData(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size,
+            @RequestParam(required = false) String sortBy,
+            @RequestParam(defaultValue = "desc") String sortDir) {
+
+        Pageable pageable = PageRequest.of(page, size);
+        Page<AllDataDto> weatherData = analysisService.getAllWeatherData(pageable, sortBy, sortDir);
+
+        return Response.successResponse(weatherData);
     }
 }

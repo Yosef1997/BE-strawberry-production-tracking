@@ -1,5 +1,6 @@
 package com.strawberry.production.analysis.service.impl;
 
+import com.strawberry.production.analysis.dto.AllDataDto;
 import com.strawberry.production.analysis.dto.AnalysisResultDto;
 import com.strawberry.production.analysis.service.AnalysisService;
 import com.strawberry.production.reject.Repository.RejectRepository;
@@ -57,5 +58,30 @@ public class AnalysisServiceImpl implements AnalysisService {
         List<Reject> bestRejects = bestWeather.getRejectRecords();
 
         return new AnalysisResultDto(bestWeather, bestYields, bestRejects);
+    }
+
+    @Override
+    public Page<AllDataDto> getAllWeatherData(Pageable pageable, String sortBy, String sortDirection) {
+        if (sortBy == null) {
+            return weatherRepository.findAllWeatherDataWithYieldAndReject(pageable);
+        }
+
+        switch (sortBy.toLowerCase()) {
+            case "yield":
+                if ("asc".equalsIgnoreCase(sortDirection)) {
+                    return weatherRepository.findAllWeatherDataSortByYieldAsc(pageable);
+                } else {
+                    return weatherRepository.findAllWeatherDataSortByYieldDesc(pageable);
+                }
+            case "reject":
+                if ("asc".equalsIgnoreCase(sortDirection)) {
+                    return weatherRepository.findAllWeatherDataSortByTotalRejectAsc(pageable);
+                } else {
+                    return weatherRepository.findAllWeatherDataSortByTotalRejectDesc(pageable);
+                }
+            default:
+                return weatherRepository.findAllWeatherDataWithYieldAndReject(pageable);
+        }
+//        return weatherRepository.findAllWeatherDataWithYieldAndReject(pageable);
     }
 }
